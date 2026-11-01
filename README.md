@@ -448,13 +448,13 @@ The repository also contains project documentation and will include release info
 
 The Development workspace contains the synchronized Dataflow Gen2, Warehouse, Pipeline, and Variable Library items. The Task Flow documents the logical dependency chain from environment configuration through orchestration and ingestion to storage.
 
-![Microsoft Fabric workspace and Northwind Orchestration Task Flow](assets/workspace-overview.png)
+![Microsoft Fabric workspace and Northwind Orchestration Task Flow](workspace-overview.png)
 
 ### Deployment Pipeline
 
-The deployment pipeline promotes the solution from Development to Test. All four deployed items are paired and shown as **Same as source**; Production is intentionally not provisioned to conserve Trial capacity.
+The deployment pipeline promotes the solution from Development to Test. All four deployed items are paired and shown as **Same as source**. Production is intentionally not provisioned to conserve Trial capacity.
 
-![Microsoft Fabric Northwind Orchestration deployment pipeline](assets/deployment-pipeline.png)
+![Microsoft Fabric Northwind Orchestration deployment pipeline](deployment-pipeline.png)
 
 ## License
 
