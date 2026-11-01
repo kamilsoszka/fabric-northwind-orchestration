@@ -1,0 +1,61 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {
+    "allowModernEvaluationEngine": true
+  },
+  "name": "df_ingest_northwind",
+  "queryGroups": [],
+  "documentLocale": "en-US",
+  "queriesMetadata": {
+    "DefaultDestination": {
+      "queryId": "e421bf48-c7a4-491c-b028-954d9b79cd5b",
+      "queryName": "DefaultDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "Categories": {
+      "queryId": "f297fb3e-2947-49b8-85f1-08fe91294578",
+      "queryName": "Categories"
+    },
+    "Customers": {
+      "queryId": "f485146e-2f82-4d8c-aabe-00b3ea9afb23",
+      "queryName": "Customers"
+    },
+    "Employees": {
+      "queryId": "fc63c795-1681-41b2-8afa-b59dabde6048",
+      "queryName": "Employees"
+    },
+    "Order_Details": {
+      "queryId": "487c889b-acbd-4603-a991-eba54e729ec3",
+      "queryName": "Order_Details"
+    },
+    "Orders": {
+      "queryId": "91e95c8d-1942-4e80-a2a9-9c9ae73f344c",
+      "queryName": "Orders"
+    },
+    "Products": {
+      "queryId": "8351d96a-312a-41ab-80c5-cd9b52ce279b",
+      "queryName": "Products"
+    },
+    "Shippers": {
+      "queryId": "725f59fb-fab9-4549-883c-8f8917913677",
+      "queryName": "Shippers"
+    },
+    "Suppliers": {
+      "queryId": "abc9611a-059e-45ff-99a7-d18d3a4589e8",
+      "queryName": "Suppliers"
+    }
+  },
+  "connections": [
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"17b642e3-9835-447c-aeab-4541a558d968\",\"DatasourceId\":\"c64006a6-6aa2-4ff8-a85d-2788c26af656\"}"
+    },
+    {
+      "path": "https://services.odata.org/v4/northwind/northwind.svc/",
+      "kind": "OData",
+      "connectionId": "{\"ClusterId\":\"17b642e3-9835-447c-aeab-4541a558d968\",\"DatasourceId\":\"9a9b5cdd-2943-483e-84c0-fda4a3caf380\"}"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Warehouse",
+    "displayName": "NorthwindWarehouse",
+    "description": ""
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "9c42692f-2a4c-99de-4380-2af93e3109c2"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "pl_northwind_full_load"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "dcd14ee3-08e3-ac40-4187-0ab1f7baf8a4"
+  }
+}

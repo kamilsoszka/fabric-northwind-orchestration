@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "VariableLibrary",
+    "displayName": "vl_northwind_config"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "0f657cda-a53b-aed5-40e2-92e7cdcb88ad"
+  }
+}

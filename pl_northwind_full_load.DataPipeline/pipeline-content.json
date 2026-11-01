@@ -1,0 +1,406 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[dbo].[usp_prepare_northwind_full_load]"
+        },
+        "connectionSettings": {
+          "name": "NorthwindWarehouse",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "9c42692f-2a4c-99de-4380-2af93e3109c2",
+              "endpoint": "6r7u65u5myfubmdehbiciaitxm-3j5m3rzlxdpufjbqaawpv6idbe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "externalReferences": {
+              "connection": "c64006a6-6aa2-4ff8-a85d-2788c26af656"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Prepare Northwind Full Load",
+        "description": "Truncates Northwind staging tables before the Dataflow Gen2 full reload.",
+        "dependsOn": []
+      },
+      {
+        "type": "RefreshDataflow",
+        "typeProperties": {
+          "dataflowId": "1dd14799-190e-bca8-433d-d89957f4677d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "notifyOption": "NoNotification",
+          "dataflowType": "DataflowFabric",
+          "executeMashupQueriesOnly": true
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Load Northwind Data",
+        "description": "Runs the Northwind Dataflow Gen2 to reload all source tables into the Warehouse.",
+        "dependsOn": [
+          {
+            "activity": "Prepare Northwind Full Load",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[dbo].[usp_log_northwind_pipeline_success]",
+          "storedProcedureParameters": {
+            "EnvironmentName": {
+              "value": {
+                "value": "@pipeline().libraryVariables.vl_northwind_config_environment_name",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "PipelineName": {
+              "value": "pl_northwind_full_load",
+              "type": "String"
+            },
+            "PipelineRunId": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "RunStartTime": {
+              "value": {
+                "value": "@pipeline().TriggerTime",
+                "type": "Expression"
+              },
+              "type": "DateTime"
+            }
+          }
+        },
+        "connectionSettings": {
+          "name": "NorthwindWarehouse",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "9c42692f-2a4c-99de-4380-2af93e3109c2",
+              "endpoint": "6r7u65u5myfubmdehbiciaitxm-3j5m3rzlxdpufjbqaawpv6idbe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "externalReferences": {
+              "connection": "c64006a6-6aa2-4ff8-a85d-2788c26af656"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Log Pipeline Success",
+        "description": "Writes the successful pipeline execution details to dbo.PipelineRunLog.",
+        "dependsOn": [
+          {
+            "activity": "Validate Data Quality",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[dbo].[usp_log_northwind_pipeline_failure]",
+          "storedProcedureParameters": {
+            "EnvironmentName": {
+              "value": {
+                "value": "@pipeline().libraryVariables.vl_northwind_config_environment_name",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "ErrorMessage": {
+              "value": {
+                "value": "@activity('Load Northwind Data').error.message",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "PipelineName": {
+              "value": "pl_northwind_full_load",
+              "type": "String"
+            },
+            "PipelineRunId": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "RunStartTime": {
+              "value": {
+                "value": "@pipeline().TriggerTime",
+                "type": "Expression"
+              },
+              "type": "DateTime"
+            }
+          }
+        },
+        "connectionSettings": {
+          "name": "NorthwindWarehouse",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "9c42692f-2a4c-99de-4380-2af93e3109c2",
+              "endpoint": "6r7u65u5myfubmdehbiciaitxm-3j5m3rzlxdpufjbqaawpv6idbe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "externalReferences": {
+              "connection": "c64006a6-6aa2-4ff8-a85d-2788c26af656"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Log Pipeline Failure",
+        "description": "Writes failed pipeline execution details to dbo.PipelineRunLog.",
+        "dependsOn": [
+          {
+            "activity": "Load Northwind Data",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Fail",
+        "typeProperties": {
+          "message": "Northwind full load failed. Error details were written to dbo.PipelineRunLog.",
+          "errorCode": "NORTHWIND_FULL_LOAD_FAILED"
+        },
+        "name": "Terminate Pipeline as Failed",
+        "description": "Marks the pipeline run as failed after the error details are logged.",
+        "dependsOn": [
+          {
+            "activity": "Log Pipeline Failure",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[analytics].[usp_refresh_analytical_model]"
+        },
+        "connectionSettings": {
+          "name": "NorthwindWarehouse",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "9c42692f-2a4c-99de-4380-2af93e3109c2",
+              "endpoint": "6r7u65u5myfubmdehbiciaitxm-3j5m3rzlxdpufjbqaawpv6idbe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "externalReferences": {
+              "connection": "c64006a6-6aa2-4ff8-a85d-2788c26af656"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Refresh Analytical Model",
+        "description": "Rebuilds the curated analytical dimensions and sales fact table after the source reload.",
+        "dependsOn": [
+          {
+            "activity": "Load Northwind Data",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[dbo].[usp_log_northwind_pipeline_failure]",
+          "storedProcedureParameters": {
+            "EnvironmentName": {
+              "value": {
+                "value": "@pipeline().libraryVariables.vl_northwind_config_environment_name",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "ErrorMessage": {
+              "value": {
+                "value": "@activity('Refresh Analytical Model').error.message\n",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "PipelineName": {
+              "value": "pl_northwind_full_load",
+              "type": "String"
+            },
+            "PipelineRunId": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "RunStartTime": {
+              "value": {
+                "value": "@pipeline().TriggerTime",
+                "type": "Expression"
+              },
+              "type": "DateTime"
+            }
+          }
+        },
+        "connectionSettings": {
+          "name": "NorthwindWarehouse",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "9c42692f-2a4c-99de-4380-2af93e3109c2",
+              "endpoint": "6r7u65u5myfubmdehbiciaitxm-3j5m3rzlxdpufjbqaawpv6idbe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "externalReferences": {
+              "connection": "c64006a6-6aa2-4ff8-a85d-2788c26af656"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Log Analytical Model Failure",
+        "description": "Writes analytical model refresh failure details to dbo.PipelineRunLog.",
+        "dependsOn": [
+          {
+            "activity": "Refresh Analytical Model",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Fail",
+        "typeProperties": {
+          "message": "Northwind analytical model refresh failed. Error details were written to dbo.PipelineRunLog.",
+          "errorCode": "NORTHWIND_MODEL_REFRESH_FAILED"
+        },
+        "name": "Terminate Model Refresh as Failed",
+        "description": "Marks the pipeline run as failed after the analytical model refresh error is logged.",
+        "dependsOn": [
+          {
+            "activity": "Log Analytical Model Failure",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[dbo].[usp_validate_northwind_data_quality]",
+          "storedProcedureParameters": {
+            "EnvironmentName": {
+              "value": {
+                "value": "@pipeline().libraryVariables.vl_northwind_config_environment_name",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "PipelineRunId": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "connectionSettings": {
+          "name": "NorthwindWarehouse",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "9c42692f-2a4c-99de-4380-2af93e3109c2",
+              "endpoint": "6r7u65u5myfubmdehbiciaitxm-3j5m3rzlxdpufjbqaawpv6idbe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "externalReferences": {
+              "connection": "c64006a6-6aa2-4ff8-a85d-2788c26af656"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Validate Data Quality",
+        "description": "Runs measurable data quality checks after the analytical model refresh.",
+        "dependsOn": [
+          {
+            "activity": "Refresh Analytical Model",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "libraryVariables": {
+      "vl_northwind_config_environment_name": {
+        "type": "String",
+        "variableName": "environment_name",
+        "libraryName": "vl_northwind_config"
+      }
+    }
+  }
+}
