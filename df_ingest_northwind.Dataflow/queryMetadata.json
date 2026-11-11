@@ -44,6 +44,12 @@
     "Suppliers": {
       "queryId": "abc9611a-059e-45ff-99a7-d18d3a4589e8",
       "queryName": "Suppliers"
+    },
+    "Orders_DataDestination": {
+      "queryId": "438fb8cb-71b6-4db2-9581-653d42b01f25",
+      "queryName": "Orders_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
     }
   },
   "connections": [

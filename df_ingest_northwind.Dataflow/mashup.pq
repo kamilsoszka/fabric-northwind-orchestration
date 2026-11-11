@@ -29,13 +29,14 @@ shared Order_Details = let
   #"Choose columns" = Table.SelectColumns(#"Navigation 1", {"OrderID", "ProductID", "UnitPrice", "Quantity", "Discount"})
 in
   #"Choose columns";
-[BindToDefaultDestination = true]
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "Orders_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "OrderID", DestinationColumnName = "OrderID"], [SourceColumnName = "CustomerID", DestinationColumnName = "CustomerID"], [SourceColumnName = "EmployeeID", DestinationColumnName = "EmployeeID"], [SourceColumnName = "ShipVia", DestinationColumnName = "ShipVia"], [SourceColumnName = "Freight", DestinationColumnName = "Freight"], [SourceColumnName = "ShipName", DestinationColumnName = "ShipName"], [SourceColumnName = "ShipAddress", DestinationColumnName = "ShipAddress"], [SourceColumnName = "ShipCity", DestinationColumnName = "ShipCity"], [SourceColumnName = "ShipRegion", DestinationColumnName = "ShipRegion"], [SourceColumnName = "ShipPostalCode", DestinationColumnName = "ShipPostalCode"], [SourceColumnName = "ShipCountry", DestinationColumnName = "ShipCountry"], [SourceColumnName = "OrderDate", DestinationColumnName = "OrderDate"], [SourceColumnName = "RequiredDate", DestinationColumnName = "RequiredDate"], [SourceColumnName = "ShippedDate", DestinationColumnName = "ShippedDate"]}], DynamicSchema = false, UpdateMethod = [Kind = "Append"], TypeSettings = [Kind = "Table"]]]}]
 shared Orders = let
   Source = OData.Feed("https://services.odata.org/v4/northwind/northwind.svc/", null, [Implementation = "2.0"]),
   #"Navigation 1" = Source{[Name = "Orders", Signature = "table"]}[Data],
-  #"Choose columns" = Table.SelectColumns(#"Navigation 1", {"OrderID", "CustomerID", "EmployeeID", "OrderDate", "RequiredDate", "ShippedDate", "ShipVia", "Freight", "ShipName", "ShipAddress", "ShipCity", "ShipRegion", "ShipPostalCode", "ShipCountry"})
+  #"Choose columns" = Table.SelectColumns(#"Navigation 1", {"OrderID", "CustomerID", "EmployeeID", "OrderDate", "RequiredDate", "ShippedDate", "ShipVia", "Freight", "ShipName", "ShipAddress", "ShipCity", "ShipRegion", "ShipPostalCode", "ShipCountry"}),
+  #"Changed column type" = Table.TransformColumnTypes(#"Choose columns", {{"ShippedDate", type datetime}, {"RequiredDate", type datetime}, {"OrderDate", type datetime}})
 in
-  #"Choose columns";
+  #"Changed column type";
 [BindToDefaultDestination = true]
 shared Products = let
   Source = OData.Feed("https://services.odata.org/v4/northwind/northwind.svc/", null, [Implementation = "2.0"]),
@@ -57,3 +58,11 @@ shared Suppliers = let
   #"Choose columns" = Table.SelectColumns(#"Navigation 1", {"SupplierID", "CompanyName", "ContactName", "ContactTitle", "Address", "City", "Region", "PostalCode", "Country", "Phone", "Fax", "HomePage"})
 in
   #"Choose columns";
+shared Orders_DataDestination = let
+  Pattern = Fabric.Warehouse([HierarchicalNavigation = true, CreateNavigationProperties = false]),
+  Navigation_1 = Pattern{[workspaceId = "."]}[Data],
+  Navigation_2 = Navigation_1{[displayName = "NorthwindWarehouse"]}[Data],
+  Navigation_3 = Navigation_2{[Schema = "dbo"]}[Data],
+  TableNavigation = Navigation_3{[Name = "Orders"]}[Data]
+in
+  TableNavigation;
