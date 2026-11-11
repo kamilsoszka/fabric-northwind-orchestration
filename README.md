@@ -540,24 +540,4 @@ The release documents the completed ingestion, Warehouse model, orchestration, d
 
 ## License
 
-This project is licensed under the LICENSE.
-
-## Project Status
-
-```text
-Technical implementation: Complete
-Development validation: Passed
-Test deployment: Passed
-Test pipeline execution: Passed
-Test data quality checks: 7 of 7 Passed
-GitHub synchronization: Complete
-Documentation: Complete
-GitHub Release: v1.0.0
-Production deployment: Intentionally not provisioned
-```
-
-## Author
-
-**Kamil Soszka**
-
-Microsoft Fabric data engineering portfolio project.
+This project is licensed under the [MIT License](LICENSE).
