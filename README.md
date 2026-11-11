@@ -1,30 +1,44 @@
 # Fabric Northwind Orchestration
 
-Metadata-driven ingestion, orchestration, analytical modeling, data quality, monitoring, and CI/CD solution built with Microsoft Fabric.
+Metadata-driven ingestion, orchestration, dimensional modeling, automated data quality, operational monitoring, and controlled Development-to-Test deployment built with Microsoft Fabric.
 
 ## Project Overview
 
-Fabric Northwind Orchestration demonstrates how to build and operate a controlled batch data pipeline in Microsoft Fabric.
+Fabric Northwind Orchestration demonstrates how to build, operate, monitor, version, and deploy a controlled batch data pipeline in Microsoft Fabric.
 
-The solution ingests eight Northwind source tables from a public OData service, loads the data into a Fabric Warehouse, rebuilds a curated dimensional model, executes measurable data quality checks, records pipeline execution history, and supports controlled deployment between Development and Test environments.
+The solution:
 
-The project was built entirely with Microsoft Fabric Trial resources. It does not require an Azure subscription, external paid services, or paid data sources.
+- ingests eight Northwind source tables from a public OData service;
+- loads the source data into Microsoft Fabric Warehouse;
+- rebuilds a curated dimensional model;
+- generates a continuous date dimension;
+- validates dimensional relationships and business rules;
+- reconciles source and analytical data;
+- records successful and failed pipeline executions;
+- supports environment-specific configuration;
+- versions supported Fabric items in GitHub;
+- deploys controlled changes from Development to Test.
+
+The project was built with Microsoft Fabric Trial resources. It does not require an Azure subscription, paid external services, or paid data sources.
 
 ## Business Scenario
 
 A company needs a repeatable and observable process for loading operational sales data into an analytical warehouse.
 
-The solution must:
+The process must:
 
-- ingest customer, order, product, employee, supplier, category, and shipping data;
-- prevent duplicate records during repeated full loads;
-- build a curated dimensional model;
+- ingest customer, order, product, employee, supplier, category, shipping, and order-line data;
+- prevent duplicate accumulation during repeated full loads;
+- rebuild a dimensional analytical model;
+- preserve a clearly defined fact-table grain;
+- generate a continuous calendar from available source dates;
 - validate data after every analytical model refresh;
+- reconcile source and analytical values;
 - record successful and failed pipeline executions;
 - support environment-specific configuration;
 - run automatically on a defined schedule;
-- maintain supported Fabric item definitions in GitHub;
-- deploy consistently from Development to Test.
+- maintain supported Microsoft Fabric item definitions in GitHub;
+- deploy controlled changes from Development to Test.
 
 ## Architecture
 
@@ -32,10 +46,11 @@ The solution must:
 flowchart LR
     OData["Northwind OData Service"]
     DF["Dataflow Gen2<br/>df_ingest_northwind"]
-    RAW["Fabric Warehouse<br/>dbo source tables"]
-    MODEL["Analytical Model<br/>analytics schema"]
-    DQ["Data Quality Checks<br/>DataQualityRunLog"]
-    LOG["Pipeline Monitoring<br/>PipelineRunLog"]
+    SOURCE["Fabric Warehouse<br/>dbo source tables"]
+    MODEL["Dimensional Model<br/>analytics schema"]
+    DATE["Continuous Date Dimension<br/>analytics.DimDate"]
+    DQ["Data Quality Framework<br/>DataQualityRunLog"]
+    LOG["Operational Monitoring<br/>PipelineRunLog"]
     VAR["Variable Library<br/>vl_northwind_config"]
     PIPE["Data Factory Pipeline<br/>pl_northwind_full_load"]
     GIT["GitHub Source Control"]
@@ -44,14 +59,16 @@ flowchart LR
     OData --> DF
     VAR --> PIPE
     PIPE --> DF
-    DF --> RAW
+    DF --> SOURCE
+    SOURCE --> MODEL
+    SOURCE --> DATE
     PIPE --> MODEL
-    RAW --> MODEL
     MODEL --> DQ
+    DATE --> DQ
     PIPE --> LOG
     DF -. source control .-> GIT
     PIPE -. source control .-> GIT
-    RAW -. source control .-> GIT
+    SOURCE -. source control .-> GIT
     VAR -. source control .-> GIT
     GIT --> DEPLOY
 ```
@@ -60,21 +77,23 @@ flowchart LR
 
 | Component | Name | Purpose |
 |---|---|---|
-| Dataflow Gen2 | `df_ingest_northwind` | Ingests and prepares Northwind OData tables |
-| Warehouse | `NorthwindWarehouse` | Stores source data, analytical tables, stored procedures, and execution logs |
+| Dataflow Gen2 | `df_ingest_northwind` | Ingests and prepares eight Northwind OData tables |
+| Warehouse | `NorthwindWarehouse` | Stores source data, dimensional tables, stored procedures, quality results, and pipeline logs |
 | Data Factory Pipeline | `pl_northwind_full_load` | Orchestrates the complete full-load process |
 | Variable Library | `vl_northwind_config` | Stores environment-specific configuration |
-| Task Flow | `Northwind Orchestration Flow` | Documents logical dependencies between workspace items |
-| Deployment Pipeline | `Northwind Orchestration Deployment` | Deploys the solution from Development to Test |
-| GitHub repository | `fabric-northwind-orchestration` | Stores version-controlled Microsoft Fabric item definitions and project documentation |
+| Task Flow | `Northwind Orchestration Flow` | Documents logical dependencies between Development workspace items |
+| Deployment Pipeline | `Northwind Orchestration Deployment` | Promotes selected changes from Development to Test |
+| GitHub repository | `fabric-northwind-orchestration` | Stores version-controlled Fabric item definitions and documentation |
 
 ## Source Data
 
 The project uses the public Northwind OData service:
 
+```text
 https://services.odata.org/v4/northwind/northwind.svc/
+```
 
-The following base tables are ingested:
+The following tables are ingested:
 
 - `Categories`
 - `Customers`
@@ -89,7 +108,7 @@ OData navigation columns and unnecessary binary columns are removed before loadi
 
 ## Orchestration Flow
 
-The main pipeline executes the following success path:
+The pipeline executes the following success path:
 
 ```text
 Prepare Northwind Full Load
@@ -101,9 +120,9 @@ Prepare Northwind Full Load
 
 ### Failure handling
 
-Two independent failure branches are implemented.
+The pipeline implements explicit failure handling for ingestion and analytical-model refresh failures.
 
-Dataflow failure:
+Dataflow failure path:
 
 ```text
 Load Northwind Data
@@ -111,7 +130,7 @@ Load Northwind Data
 → Terminate Pipeline as Failed
 ```
 
-Analytical model refresh failure:
+Analytical-model refresh failure path:
 
 ```text
 Refresh Analytical Model
@@ -119,27 +138,52 @@ Refresh Analytical Model
 → Terminate Model Refresh as Failed
 ```
 
-The pipeline records error details before explicitly terminating the execution with a failed status.
+Error information is recorded before the pipeline explicitly terminates with a failed status.
 
 ## Full-Load Strategy
 
 Dataflow Gen2 uses the `Append` update method.
 
-Before loading data, the pipeline executes:
+Before Dataflow Gen2 starts, the pipeline executes:
 
 ```text
 dbo.usp_prepare_northwind_full_load
 ```
 
-The procedure truncates all eight source tables before Dataflow Gen2 reloads the complete Northwind dataset.
+The procedure truncates all eight source tables:
 
-This truncate-and-reload pattern makes repeated full loads idempotent at the table-content level and prevents duplicate accumulation between successful executions.
+```text
+dbo.Order_Details
+dbo.Orders
+dbo.Products
+dbo.Categories
+dbo.Customers
+dbo.Employees
+dbo.Shippers
+dbo.Suppliers
+```
+
+The procedure is executed before ingestion. Repeated successful pipeline runs therefore rebuild the source layer with stable row counts and do not accumulate duplicates.
+
+### Full-load recovery limitation
+
+The active source tables are truncated before the external Dataflow Gen2 load starts.
+
+If ingestion fails after the truncate operation, the source layer may remain empty or partially loaded until the next successful full pipeline execution.
+
+A production-grade implementation should instead:
+
+1. load data into separate staging tables;
+2. validate source completeness;
+3. promote the validated dataset to the active source layer through a controlled swap or equivalent atomic process.
 
 ## Warehouse Design
 
-### Source schema
+The project uses two principal Warehouse schemas.
 
-The `dbo` schema stores the ingested Northwind tables:
+### Source layer
+
+The `dbo` schema stores the ingested operational tables:
 
 ```text
 dbo.Categories
@@ -152,15 +196,16 @@ dbo.Shippers
 dbo.Suppliers
 ```
 
-### Analytical schema
+### Analytical layer
 
-The `analytics` schema separates curated analytical objects from source ingestion tables.
+The `analytics` schema stores the dimensional model.
 
 Dimensions:
 
 ```text
 analytics.DimCategory
 analytics.DimCustomer
+analytics.DimDate
 analytics.DimEmployee
 analytics.DimProduct
 analytics.DimShipper
@@ -173,9 +218,66 @@ Fact table:
 analytics.FactSales
 ```
 
-The grain of `analytics.FactSales` is one order-product line.
+The project does not use formal Bronze, Silver, and Gold schemas. The `dbo` and `analytics` separation is intentional and appropriate for this Warehouse-focused orchestration solution.
 
-### Analytical measures stored in the fact table
+## Dimensional Model
+
+### FactSales grain
+
+The grain of `analytics.FactSales` is:
+
+```text
+One order-product line
+```
+
+The unique grain is represented by:
+
+```text
+OrderKey + ProductKey
+```
+
+The validated source and fact row counts are both `2,155`.
+
+### Date dimension
+
+`analytics.DimDate` is generated as a continuous calendar from the minimum and maximum source dates found in:
+
+- `Orders.OrderDate`
+- `Orders.RequiredDate`
+- `Orders.ShippedDate`
+
+Validated date range:
+
+```text
+1996-07-04 to 1998-06-11
+```
+
+Validated number of calendar rows:
+
+```text
+708
+```
+
+`FactSales` contains three date roles:
+
+- `OrderDateKey`
+- `RequiredDateKey`
+- `ShippedDateKey`
+
+`OrderDateKey` and `RequiredDateKey` are required. `ShippedDateKey` may be null for orders that have not been shipped.
+
+### Product relationships
+
+`analytics.DimProduct` references:
+
+- `analytics.DimCategory` through `CategoryKey`;
+- `analytics.DimSupplier` through `SupplierKey`.
+
+Both relationships were validated with zero missing references.
+
+### Sales measures
+
+`analytics.FactSales` stores:
 
 - quantity;
 - unit price;
@@ -184,49 +286,109 @@ The grain of `analytics.FactSales` is one order-product line.
 - net sales amount;
 - order freight.
 
-The available source dataset does not contain usable order dates. The project therefore intentionally avoids creating an artificial date dimension that would imply unsupported temporal analysis.
+Gross sales are calculated as:
+
+```text
+Quantity × UnitPrice
+```
+
+Net sales are calculated as:
+
+```text
+Quantity × UnitPrice × (1 - DiscountRate)
+```
+
+### Order freight allocation
+
+Source freight exists at the order grain, while `FactSales` uses the order-product-line grain.
+
+To prevent repeated freight values from being summed once for every product line, the analytical refresh procedure stores order freight exactly once per order.
+
+The freight value is assigned to the order line with the lowest `ProductID`. All remaining lines for the same order receive zero freight.
+
+This deterministic allocation preserves an additive `SUM(OrderFreight)` while retaining the declared fact-table grain.
+
+Validated freight reconciliation:
+
+```text
+Source freight: 64,942.69
+FactSales freight: 64,942.69
+Difference: 0.00
+Orders with invalid freight allocation: 0
+```
 
 ## Stored Procedures
 
 | Procedure | Purpose |
 |---|---|
-| `dbo.usp_prepare_northwind_full_load` | Truncates source tables before each full load |
-| `analytics.usp_refresh_analytical_model` | Rebuilds dimensions and the sales fact table |
-| `dbo.usp_validate_northwind_data_quality` | Executes and records measurable data quality checks |
+| `dbo.usp_prepare_northwind_full_load` | Truncates the eight source tables before a full reload |
+| `analytics.usp_refresh_analytical_model` | Rebuilds the continuous date dimension, analytical dimensions, and `FactSales` |
+| `dbo.usp_validate_northwind_data_quality` | Executes and records measurable data-quality checks |
 | `dbo.usp_log_northwind_pipeline_success` | Records successful pipeline executions |
 | `dbo.usp_log_northwind_pipeline_failure` | Records failed pipeline executions and error details |
 
+## Analytical Refresh Controls
+
+`analytics.usp_refresh_analytical_model` executes the model refresh inside a database transaction.
+
+The procedure:
+
+- calculates the source date range;
+- rejects an empty date range;
+- calculates the expected source-to-fact row count dynamically;
+- rebuilds the continuous date dimension;
+- rebuilds all dimensions and the fact table;
+- validates row counts;
+- validates key uniqueness;
+- validates the fact-table grain;
+- validates dimensional relationships;
+- validates date relationships;
+- validates source date chronology;
+- validates sales calculations;
+- reconciles source and fact freight;
+- validates order-level freight allocation;
+- commits only after all controls succeed;
+- rolls back the model refresh and rethrows the error when a control fails.
+
+Expected Northwind dimension counts remain fixed because the project uses the public static Northwind demonstration dataset. Source-to-fact reconciliation and date-range validation are calculated dynamically.
+
 ## Data Quality Framework
 
-Data quality results are stored in:
+Quality results are written to:
 
 ```text
 dbo.DataQualityRunLog
 ```
 
-Each pipeline execution validates seven expected analytical row counts:
+The post-refresh validation procedure records 11 controls for each successful run:
 
 | Check | Expected value |
 |---|---:|
 | `DimCategory row count` | 8 |
 | `DimCustomer row count` | 91 |
+| `DimDate row count` | 708 for the validated source snapshot |
 | `DimEmployee row count` | 9 |
 | `DimProduct row count` | 77 |
 | `DimShipper row count` | 3 |
 | `DimSupplier row count` | 29 |
 | `FactSales row count` | 2,155 |
+| `Missing required fact date keys` | 0 |
+| `Invalid fact date relationships` | 0 |
+| `Invalid source date chronology` | 0 |
 
-If any check fails:
+The expected `DimDate` row count is calculated from the actual source date range during validation.
 
-1. the failed result is written to `DataQualityRunLog`;
+If any control fails:
+
+1. the result is written to `DataQualityRunLog`;
 2. the validation procedure raises a T-SQL exception;
 3. the pipeline follows its failure path;
 4. error details are written to `PipelineRunLog`;
-5. the complete pipeline execution is marked as failed.
+5. the pipeline execution is marked as failed.
 
 ## Pipeline Monitoring
 
-Pipeline execution history is stored in:
+Pipeline history is stored in:
 
 ```text
 dbo.PipelineRunLog
@@ -243,7 +405,9 @@ Recorded fields include:
 - error message;
 - log timestamp.
 
-The monitoring table supplements native Microsoft Fabric run history with queryable operational metadata stored in the Warehouse.
+The table supplements native Microsoft Fabric run history with queryable operational metadata.
+
+Both successful and failed executions are retained. Historical failures are not removed because they provide evidence that failure handling and validation controls operated as designed.
 
 ## Environment Configuration
 
@@ -259,17 +423,18 @@ Configured value sets:
 |---|---|---|
 | Default | `Development` | Development workspace |
 | Test | `Test` | Test workspace |
-| Production | `Production` | Reserved for a future production deployment |
 
 The active value set is selected independently in each environment.
 
-The pipeline resolves the environment dynamically through:
+The pipeline resolves the value dynamically:
 
 ```text
 @pipeline().libraryVariables.vl_northwind_config_environment_name
 ```
 
-## Development and Test Environments
+A Production value set is not currently implemented.
+
+## Environments
 
 ### Development
 
@@ -299,36 +464,69 @@ Active environment value:
 Test
 ```
 
-Deployment to Test was completed through the Fabric Deployment Pipeline.
+The current Deployment Pipeline contains two provisioned stages:
 
-Dataflow Gen2 Warehouse destinations and stored-procedure activity connections were remapped to the Test Warehouse after deployment.
+```text
+Development → Test
+```
 
-The Test pipeline completed successfully, including source preparation, ingestion, analytical model refresh, data quality validation, and success logging.
+A Production stage and Production workspace are not currently implemented.
 
-A Production stage is included in the deployment design but was intentionally not provisioned to avoid unnecessary Microsoft Fabric Trial capacity consumption.
+## Development-to-Test Deployment
+
+The project uses the Fabric Deployment Pipeline named:
+
+```text
+Northwind Orchestration Deployment
+```
+
+The hardened Warehouse version was:
+
+1. committed to GitHub;
+2. synchronized to the Development workspace;
+3. validated through a complete Development pipeline run;
+4. selectively deployed as `NorthwindWarehouse` to Test;
+5. validated through a complete Test pipeline run.
+
+### Warehouse schema compatibility
+
+Warehouse deployment uses preview deployment functionality and schema comparison.
+
+During hardening, Deployment Pipeline detected schema drift in `analytics.DimDate`. The initial deployment failed because Fabric Warehouse could not perform several generated `ALTER COLUMN` operations that required data validation or rewriting.
+
+The Test `DimDate` table was therefore rebuilt through a controlled migration that:
+
+- preserved all 708 rows;
+- preserved the date range from `1996-07-04` to `1998-06-11`;
+- aligned column types, lengths, and nullability with Development;
+- validated `DateKey` uniqueness;
+- validated `IsWeekend`;
+- removed the temporary backup table after a successful migration.
+
+After schema alignment, the selective Warehouse deployment completed successfully.
 
 ## Scheduling
 
-The Development pipeline is scheduled to run:
+The Development pipeline is configured to run:
 
 ```text
 Daily at 06:00 AM
-Time zone: Warsaw, UTC+01:00
+Time zone: Warsaw
 ```
 
 Failure notifications are configured for the project account.
 
-The fixed UTC offset documents the configuration visible during validation. Daylight-saving changes may require schedule verification in Microsoft Fabric.
+The displayed UTC offset depends on the active local time configuration. Scheduling should be verified after daylight-saving-time changes.
 
 ## Task Flow
 
-The workspace Task Flow documents the logical project structure:
+The Development workspace Task Flow documents the logical structure:
 
 ```text
 Develop → General → Get data → Store
 ```
 
-Assigned workspace items:
+Assigned items:
 
 ```text
 vl_northwind_config
@@ -337,22 +535,28 @@ vl_northwind_config
 → NorthwindWarehouse
 ```
 
-Task Flow connectors document logical dependencies and do not execute physical data movement.
+Task Flow connectors document logical dependencies. They do not execute physical data movement.
 
-## Validation Results
+## Validated Results
 
 ### Source tables
 
-| Source table | Records |
-|---|---:|
-| Categories | 8 |
-| Customers | 91 |
-| Employees | 9 |
-| Order_Details | 2,155 |
-| Orders | 830 |
-| Products | 77 |
-| Shippers | 3 |
-| Suppliers | 29 |
+| Source table | Records | Null keys | Duplicate keys |
+|---|---:|---:|---:|
+| Categories | 8 | 0 | 0 |
+| Customers | 91 | 0 | 0 |
+| Employees | 9 | 0 | 0 |
+| Order_Details | 2,155 | 0 | 0 |
+| Orders | 830 | 0 | 0 |
+| Products | 77 | 0 | 0 |
+| Shippers | 3 | 0 | 0 |
+| Suppliers | 29 | 0 | 0 |
+
+The `Order_Details` duplicate test uses the composite key:
+
+```text
+OrderID + ProductID
+```
 
 ### Analytical tables
 
@@ -360,17 +564,71 @@ Task Flow connectors document logical dependencies and do not execute physical d
 |---|---:|
 | DimCategory | 8 |
 | DimCustomer | 91 |
+| DimDate | 708 |
 | DimEmployee | 9 |
 | DimProduct | 77 |
 | DimShipper | 3 |
 | DimSupplier | 29 |
 | FactSales | 2,155 |
 
-Development and Test pipeline executions completed successfully.
+### Business values
 
-All seven analytical data quality checks were recorded as `Passed`.
+| Metric | Validated value |
+|---|---:|
+| Distinct orders | 830 |
+| Distinct products in FactSales | 77 |
+| FactSales grain rows | 2,155 |
+| Total gross sales | 1,354,458.59 |
+| Total net sales | 1,265,792.93 |
+| Total quantity | 51,317 |
+| Source freight | 64,942.69 |
+| FactSales freight | 64,942.69 |
+| Freight difference | 0.00 |
+| Orders with invalid freight allocation | 0 |
 
-The validated `FactSales` row count matches the source `Order_Details` row count of 2,155, which is consistent with the declared grain of one order-product line.
+### Date validation
+
+| Metric | Validated value |
+|---|---|
+| Minimum date | 1996-07-04 |
+| Maximum date | 1998-06-11 |
+| Continuous date rows | 708 |
+| Expected continuous date rows | 708 |
+| Weekend rows | 202 |
+
+## Validated Test Execution
+
+The final Test pipeline execution completed successfully.
+
+Pipeline run identifier:
+
+```text
+1454a84c-6893-4f34-8ce3-5c7e65f4af73
+```
+
+The following activities succeeded:
+
+```text
+Prepare Northwind Full Load
+Load Northwind Data
+Refresh Analytical Model
+Validate Data Quality
+Log Pipeline Success
+```
+
+The execution was recorded in `dbo.PipelineRunLog` with:
+
+```text
+RunStatus = Succeeded
+EnvironmentName = Test
+ErrorMessage = NULL
+```
+
+All 11 post-refresh quality checks were recorded as:
+
+```text
+Passed
+```
 
 ## CI/CD
 
@@ -378,7 +636,7 @@ The project uses two complementary lifecycle-management mechanisms.
 
 ### GitHub integration
 
-The following Microsoft Fabric item definitions are versioned in this repository:
+The following Microsoft Fabric item definitions are versioned:
 
 ```text
 df_ingest_northwind
@@ -387,106 +645,136 @@ pl_northwind_full_load
 vl_northwind_config
 ```
 
-### Deployment Pipeline
+The Warehouse is stored as a SQL project, including:
 
-The Fabric Deployment Pipeline contains:
+- schemas;
+- tables;
+- stored procedures;
+- project configuration.
+
+The hardened analytical refresh procedure was committed with:
 
 ```text
-Development
-Test
-Production
+2c66f97
+Fix freight allocation and strengthen warehouse validation
 ```
 
-Development and Test are provisioned and validated.
+### Deployment Pipeline
 
-Production remains intentionally unassigned.
+The implemented deployment path is:
 
-Environment-specific Warehouse destinations and stored-procedure connections must be verified and, where required, remapped after deployment.
+```text
+Development → Test
+```
+
+Only reviewed items should be selected for deployment.
+
+Dataflow Gen2 destinations, Warehouse procedure connections, Variable Library values, and other environment-specific settings must be verified before executing a deployed pipeline.
 
 ## Security and Operational Practices
 
 - Anonymous authentication is used only for the public Northwind OData demonstration endpoint.
 - No credentials, access tokens, or private connection strings are stored in the repository.
-- GitHub access uses a fine-grained token restricted to this repository.
+- GitHub access uses a repository-restricted authentication mechanism.
+- Development and Test contain separate Warehouse items.
+- Workspace access is limited to the project administrator.
+- No unnecessary workspace users or groups were identified during validation.
 - Environment configuration is centralized in Fabric Variable Library.
-- Failure branches record error information before explicitly terminating the pipeline.
-- Development and Test use separate Warehouse items and environment values.
-- Warehouse targets are verified before deployed pipelines are executed.
-- Production is intentionally not provisioned.
-- Trial capacity consumption is limited through one daily schedule and a lightweight demonstration dataset.
+- Successful and failed executions are stored in operational log tables.
+- Failure branches record error information before pipeline termination.
+- Warehouse destinations and stored-procedure connections are verified before deployed pipelines are executed.
+- Production is not currently provisioned.
+- Trial capacity consumption is limited through a lightweight public dataset and a single daily Development schedule.
 
 ## Reproduction Guide
 
 ### Prerequisites
 
-- access to a Microsoft Fabric workspace with the required capacity;
-- permission to create a Warehouse, Dataflow Gen2, Data Factory Pipeline, and Variable Library;
+- access to Microsoft Fabric capacity;
+- permission to create and manage a Warehouse;
+- permission to create Dataflow Gen2 and Data Factory Pipeline items;
+- permission to create a Variable Library;
 - access to Fabric Git integration;
 - access to Fabric Deployment Pipelines;
 - access to the public Northwind OData endpoint;
-- appropriate workspace and deployment permissions.
+- appropriate Development and Test workspace permissions.
 
-### Recommended deployment order
+### Recommended order
 
-1. Connect the Development workspace to the GitHub repository.
-2. Synchronize the supported Microsoft Fabric item definitions.
-3. Verify the `NorthwindWarehouse` item.
-4. Verify Dataflow Gen2 destinations for all eight source tables.
-5. Verify stored-procedure activity connections in `pl_northwind_full_load`.
-6. Configure the active Variable Library value set.
-7. Confirm access to the public Northwind OData endpoint.
-8. Execute the pipeline manually.
-9. Verify source and analytical row counts.
-10. Confirm that all seven data quality checks passed.
-11. Confirm the successful entry in `PipelineRunLog`.
-12. Configure scheduling and failure notifications.
-13. Deploy the solution to Test through the Fabric Deployment Pipeline.
-14. Remap Test Warehouse destinations and stored-procedure connections.
-15. Execute and validate the Test pipeline.
+1. Create or assign the Development workspace.
+2. Connect the Development workspace to this GitHub repository.
+3. Synchronize the supported Microsoft Fabric item definitions.
+4. Verify the `NorthwindWarehouse` SQL project.
+5. Verify all eight Dataflow Gen2 Warehouse destinations.
+6. Verify all stored-procedure activity connections in `pl_northwind_full_load`.
+7. Confirm the Default Variable Library value set is active in Development.
+8. Confirm access to the public Northwind OData endpoint.
+9. Run the complete Development pipeline once.
+10. Verify source row counts and source-key controls.
+11. Verify dimensional row counts and relationships.
+12. Verify the 11 post-refresh data-quality checks.
+13. Verify the `PipelineRunLog` success entry.
+14. Verify gross sales, net sales, quantity, and freight reconciliation.
+15. Configure scheduling and failure notifications.
+16. Create or assign the Test workspace.
+17. Configure the Test Variable Library value set.
+18. Compare Development and Test through the Deployment Pipeline.
+19. Review selected Warehouse schema changes before deployment.
+20. Deploy only the reviewed items.
+21. Verify environment-specific Warehouse destinations and procedure connections.
+22. Run the complete Test pipeline.
+23. Verify the final Test monitoring and quality records.
 
-Do not store credentials, tokens, or private connection information in repository files.
+Do not store credentials, tokens, tenant identifiers, private connection information, or diagnostic logs in the repository.
 
 ## Known Limitations
 
-- The project uses a full-load strategy rather than incremental CDC.
-- Northwind is a static demonstration dataset.
-- Expected source row counts are specific to the public Northwind sample.
-- Dataflow Gen2 CI/CD support includes Preview capabilities.
-- Warehouse destinations require verification or remapping after Dataflow deployment.
-- Some stored-procedure activity connections require remapping after deployment.
-- The Production stage is not provisioned.
-- Microsoft Fabric Trial resources expire unless the workspaces are reassigned to an eligible capacity.
-- The source does not provide suitable date fields for a meaningful date dimension.
-- The solution validates expected row counts but does not implement a complete enterprise reconciliation framework.
-- No Power BI report is included because the project focuses on Data Factory orchestration, Warehouse engineering, automated data quality, monitoring, and CI/CD.
+- The solution uses full-load ingestion rather than incremental CDC.
+- Northwind is a static public demonstration dataset.
+- Expected dimension counts are specific to the validated Northwind snapshot.
+- The full-load procedure truncates active source tables before external ingestion.
+- An ingestion failure after truncation can leave the source layer empty or partially loaded until the next successful execution.
+- A production implementation should use staging tables and controlled data promotion.
+- Dataflow Gen2 CI/CD capabilities include preview functionality.
+- Warehouse deployment through Fabric Deployment Pipelines includes preview functionality.
+- Some Warehouse column changes cannot be applied through generated `ALTER COLUMN` operations.
+- Existing target schema drift may require a controlled migration before deployment.
+- Dataflow destinations and stored-procedure connections require environment-specific verification.
+- Production is not currently implemented.
+- Microsoft Fabric Trial resources expire unless the workspaces are assigned to eligible capacity.
+- Historical test failures remain in operational logs by design.
+- The project uses recreated Type 1 dimensions and does not implement Slowly Changing Dimension Type 2 history.
+- No Power BI report or Fabric App is included because the project focuses on ingestion, orchestration, Warehouse engineering, data quality, monitoring, and CI/CD.
 
 ## Repository Structure
 
 ```text
 fabric-northwind-orchestration/
 ├── NorthwindWarehouse.Warehouse/
-│   └── Microsoft Fabric Warehouse item definition
+│   ├── analytics/
+│   │   ├── StoredProcedures/
+│   │   └── Tables/
+│   ├── dbo/
+│   │   ├── StoredProcedures/
+│   │   └── Tables/
+│   └── NorthwindWarehouse.sqlproj
 ├── df_ingest_northwind.Dataflow/
-│   └── Dataflow Gen2 item definition
 ├── pl_northwind_full_load.DataPipeline/
-│   └── Data Factory Pipeline item definition
 ├── vl_northwind_config.VariableLibrary/
-│   └── Variable Library item definition
 ├── deployment-pipeline.png
-│   └── Development-to-Test deployment evidence
 ├── workspace-overview.png
-│   └── Development workspace and Task Flow evidence
 ├── LICENSE
-│   └── MIT License
 └── README.md
-    └── Architecture, deployment, validation, security, and reproduction documentation
 ```
 
-The four Microsoft Fabric item folders are synchronized from the Development workspace through Fabric Git integration.
+The four supported Microsoft Fabric item folders are synchronized from the Development workspace through Fabric Git integration.
 
-The repository also contains an MIT License and visual evidence of the Development workspace, Task Flow, and Development-to-Test deployment.
+The repository also contains:
 
-Versioned portfolio milestones are published separately through GitHub Releases.
+- an MIT License;
+- Development workspace evidence;
+- Task Flow evidence;
+- Development-to-Test deployment evidence.
 
 ## Key Skills Demonstrated
 
@@ -496,18 +784,24 @@ Versioned portfolio milestones are published separately through GitHub Releases.
 - Microsoft Fabric Warehouse
 - Data Factory Pipelines
 - T-SQL stored procedures
+- transactional analytical refresh
 - dimensional modeling
-- metadata-driven configuration
-- Fabric Variable Library
-- automated data quality controls
-- pipeline monitoring
-- failure handling
+- continuous date-dimension generation
+- fact-table grain control
+- deterministic freight allocation
+- source-to-fact reconciliation
+- referential-integrity validation
+- automated data-quality controls
+- operational pipeline monitoring
+- explicit failure handling
 - scheduling and notifications
+- Fabric Variable Library
 - Fabric Task Flow
 - GitHub source control
+- SQL project versioning
 - Fabric Deployment Pipelines
 - Development and Test environment management
-- CI/CD connection remapping
+- schema-drift diagnosis and remediation
 - technical documentation and reproducibility
 
 ## Project Screenshots
@@ -522,21 +816,28 @@ The Task Flow documents the logical dependency chain from environment configurat
 
 ### Deployment Pipeline
 
-The Deployment Pipeline promotes the solution from Development to Test.
-
-All four deployed Fabric items are paired and validated. Production is intentionally not provisioned to conserve Microsoft Fabric Trial capacity.
+The Deployment Pipeline promotes reviewed changes from Development to Test.
 
 ![Microsoft Fabric Northwind Orchestration Deployment Pipeline](deployment-pipeline.png)
 
 ## Release
 
-The first validated portfolio version is published as:
+The initial validated portfolio version was published as:
 
 ```text
 v1.0.0
 ```
 
-The release documents the completed ingestion, Warehouse model, orchestration, data quality controls, monitoring, environment configuration, and Development-to-Test deployment.
+The hardened implementation introduces:
+
+- a continuous date dimension;
+- extended relationship and business-rule controls;
+- source-to-fact reconciliation;
+- deterministic order-freight allocation;
+- freight reconciliation;
+- validated Development-to-Test Warehouse deployment.
+
+A new Semantic Versioning release should be created after the hardened repository state and final documentation are committed and verified.
 
 ## License
 
