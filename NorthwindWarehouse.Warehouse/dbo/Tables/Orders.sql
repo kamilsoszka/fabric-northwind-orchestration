@@ -9,7 +9,10 @@ CREATE TABLE [dbo].[Orders] (
     [ShipCity]       VARCHAR (8000)  NULL,
     [ShipRegion]     VARCHAR (8000)  NULL,
     [ShipPostalCode] VARCHAR (8000)  NULL,
-    [ShipCountry]    VARCHAR (8000)  NULL
+    [ShipCountry]    VARCHAR (8000)  NULL,
+    [OrderDate]      DATETIME2 (6)   NULL,
+    [RequiredDate]   DATETIME2 (6)   NULL,
+    [ShippedDate]    DATETIME2 (6)   NULL
 );
 
 
