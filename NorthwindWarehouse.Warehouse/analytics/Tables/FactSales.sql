@@ -9,7 +9,10 @@ CREATE TABLE [analytics].[FactSales] (
     [DiscountRate]     DECIMAL (9, 6)  NULL,
     [GrossSalesAmount] DECIMAL (18, 2) NULL,
     [NetSalesAmount]   DECIMAL (18, 2) NULL,
-    [OrderFreight]     DECIMAL (18, 2) NULL
+    [OrderFreight]     DECIMAL (18, 2) NULL,
+    [OrderDateKey]     INT             NULL,
+    [RequiredDateKey]  INT             NULL,
+    [ShippedDateKey]   INT             NULL
 );
 
 
